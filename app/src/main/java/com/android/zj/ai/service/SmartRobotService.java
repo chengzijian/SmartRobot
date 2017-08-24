@@ -1,8 +1,7 @@
 package com.android.zj.ai.service;
 
 import android.accessibilityservice.AccessibilityService;
-import android.app.ActivityManager;
-import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -12,6 +11,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
+import com.android.zj.ai.utils.AppUtils;
 import com.android.zj.ai.utils.SuUtil;
 
 import java.util.List;
@@ -25,7 +25,6 @@ public class SmartRobotService extends AccessibilityService {
     public static final String TAG = "SmartRobotService";
 
     public static Random localRandom = new Random();
-    public boolean isInstallApkDone;//是否安装并打开过
     private String installApkPackName;
     private AccessibilityNodeInfo accessibilityNodeInfo;
     private boolean isAutoInstall;//是否自动安装
@@ -192,163 +191,225 @@ public class SmartRobotService extends AccessibilityService {
         if (accessibilityNodeInfo == null) {
             return;
         }
-
-        //6.0 权限获取 自动授权
-        if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.widget.FrameLayout", 16384)
-                || AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.permission.ui.GrantPermissionsActivity", 32)) {
-            //授权界面
-            if (accessibilityNodeInfo.getPackageName().equals("com.android.packageinstaller")
-                    && accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout")) {
-                Log.e(TAG, "进入授权界面");
-                handlerEnter(MSG_REQUEST_AUTHORIZE, null, 500 + localRandom.nextInt(500));//0.5到1秒
-            }
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "eu.chainfire.supersu.PromptActivity", 32)) {
-            //root 权限授权
-            if (AccessibilityUtils.findTextAndClick(SmartRobotService.this, "授权")) {
-                Log.e(TAG, "root 权限授权成功");
-            }
-        }
-
-        if (isInstallApkDone && TextUtils.isEmpty(installApkPackName) && checkAccessPaceName(accessibilityNodeInfo.getPackageName().toString())) {
-            installApkPackName = accessibilityNodeInfo.getPackageName().toString();
-        }
-        if (accessibilityNodeInfo.getPackageName().equals(installApkPackName)/* || (accessibilityNodeInfo.getChildCount() == 2
-                && accessibilityNodeInfo.getChild(0).getClassName().equals("android.webkit.WebView")
-                && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ProgressBar"))*/) {
-
-            Log.e(TAG, "enter out view!");
-            handlerEnter(MSG_REQUEST_CLOSE, null, 10000 + localRandom.nextInt(10000));//10到20秒
-            return;
-        }
-
-        if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.MainActivity", 32)) {
-            //进入了游戏主界面  随机获取一种类型
-
-            List<AccessibilityNodeInfo> sendBtn = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.c.z.j.guess.cb:id/diyAdButton");
-            if (AccessibilityUtils.checkNodeInfoType(sendBtn, "android.widget.Button")) {
-                AccessibilityUtils.performClick(sendBtn.get(0));
-            }
-
-
-            /*String t = btnIds[localRandom.nextInt(btnIds.length)];
-            if (t.equals("back")) {
-                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
-            } else {
-                clickNodeInfo(accessibilityNodeInfo, t, "android.widget.Button");
-            }*/
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.GuessActivity", 32)) {
-            //进入继续游戏。
-            Log.e(TAG, "进入继续游戏");
-            String t = guessBtnIds[localRandom.nextInt(guessBtnIds.length)];
-            if (!t.equals("back") && accessibilityNodeInfo.getChildCount() >= 4 && accessibilityNodeInfo.getChild(4).getClassName()
-                    .toString().trim().equals("android.widget.LinearLayout") && accessibilityNodeInfo.getChild(4).getChildCount() == 1) {
-                clickNodeInfo(accessibilityNodeInfo.getChild(4).getChild(0), null, "click");
-            } else {
-                clickNodeInfo(accessibilityNodeInfo, null, "back");
-            }
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.LevelMainActivity", 32)) {
-            //进入选择大关卡
-            Log.e(TAG, "进入选择大关卡");
-            String t = levelMainBtnIds[localRandom.nextInt(levelMainBtnIds.length)];
-            if (!t.equals("back") && accessibilityNodeInfo.getChildCount() >= 4 && accessibilityNodeInfo.getChild(4).getClassName()
-                    .toString().trim().equals("android.widget.LinearLayout") && accessibilityNodeInfo.getChild(4).getChildCount() == 1) {
-                clickNodeInfo(accessibilityNodeInfo.getChild(4).getChild(0), null, "click");
-            } else {
-                clickNodeInfo(accessibilityNodeInfo, null, "back");
-            }
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.LevelItemActivity", 32)) {
-            //进入选择小关卡
-            Log.e(TAG, "进入选择小关卡");
-            clickNodeInfo(accessibilityNodeInfo, null, "back");
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.app.Dialog", 32)) {
-
-            //判断界面显示的是插屏广告。 随机 N秒 点击下载  或者 关闭
-            if (accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout") && accessibilityNodeInfo.getChildCount() == 2
-                    && accessibilityNodeInfo.getChild(0).getClassName().equals("android.widget.ImageView")) {
-                Log.e(TAG, "进入插屏广告页");
-                handlerEnter(MSG_REQUEST_INTERSTITIAL, accessibilityNodeInfo, 1000 + localRandom.nextInt(9000));//1到10秒
-            } else if (accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout") && accessibilityNodeInfo.getChildCount() == 2
-                    && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ScrollView")) {
-                //自定义广告(单条)
-                Log.e(TAG, "进入 自定义广告(单条)");
-                handlerEnter(MSG_REQUEST_CUSTOM_SINGLE, null, 1000 + localRandom.nextInt(9000));//1到10秒
-            } else if (accessibilityNodeInfo.getChildCount() == 5 && accessibilityNodeInfo.getChild(0).getClassName().equals("android.widget.TextView")
-                    && accessibilityNodeInfo.getChild(0).getText().toString().trim().contains("确定要退出吗")) {
-                Log.e(TAG, "进入退出界面");
-
-                int type = localRandom.nextInt(2);
-                if (type == 0) {
-                    handlerEnter(MSG_REQUEST_EXIT_APP, null, 1000 + localRandom.nextInt(4000));//1到5秒
-                } else {
-                    if (accessibilityNodeInfo.getChild(1).getClassName().toString().trim().equals("android.widget.ImageView")) {
-                        AccessibilityUtils.performClick(accessibilityNodeInfo.getChild(1));
-//                        clickNodeInfo(accessibilityNodeInfo.getChild(1), null, "click");
-                    }
-                }
-            } else if(accessibilityNodeInfo.getChildCount() == 2 && accessibilityNodeInfo.getChild(0).getClassName().equals("android.webkit.WebView")
-                    && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ProgressBar")){
-                //进入内部webview
-                Log.e(TAG, "dialog 进入内部webview");
-
-            } else {
-                Log.e(TAG, "进入未知类型");
-                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
-            }
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.app.AlertDialog", 32)) {
-            //温馨提示   文件已经存在 是否重新下载
-            Log.e(TAG, "进入 温馨提示");
-            handlerEnter(MSG_REQUEST_WARM_HINT, null, 1000 + localRandom.nextInt(9000));//1到10秒
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.PackageInstallerActivity", 32)) {
-            Log.e(TAG, "进入 应用安装中");
-            handlerEnter(MSG_REQUEST_AUTO_INSTALL, null, 5000 + localRandom.nextInt(5000));//5到10秒
-
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.InstallAppProgress", 32)) {
-            //应用安装完成界面
-            Log.e(TAG, "进入 应用安装完成界面");//123
-            handlerEnter(MSG_REQUEST_INSTALL_DONE, accessibilityNodeInfo, 1000 + localRandom.nextInt(2000));//1到3秒
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.server.am.AppErrorDialog", 32)) {
-            //已停止运行
-            Log.e(TAG, "已停止运行");
-            clickNodeInfo(accessibilityNodeInfo, "android:id/button1", "android.widget.Button");
-
-        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.org.chromium.content.browser.ContentViewCore", 2048)) {
-            //返回
-            if(accessibilityNodeInfo.getChild(0).getClassName().toString().trim().equals("android.webkit.WebView")){
-                Log.e(TAG, "ContentViewCore WebView");
-
-            } else {
-                Log.e(TAG, "ContentViewCore 自动返回");
-                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
-            }
-
+        //进入首页
+        if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.zj.vary.activity.MainActivity", 32)) {
+            clickNodeInfo(accessibilityNodeInfo, "com.android.zj.vary:id/update_proxy", "android.widget.Button");
         } else if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
             try {
                 String toastMsg = (String) accessibilityEvent.getText().get(0);
-                String containsStr = "<<安装>>package:";
-                if (!TextUtils.isEmpty(toastMsg) && toastMsg.contains(containsStr)) {
-                    Log.e(TAG, "应用安装完成了");
-                    installApkPackName = toastMsg.replace(containsStr, "");
+                if (!TextUtils.isEmpty(toastMsg)) {
+                    if (toastMsg.contains("disconnected")) {
+                        Log.e(TAG, "VPN关闭");
+                    } else if (toastMsg.contains("connected")) {
+                        Log.e(TAG, "VPN开启成功");
 
-                    ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-                    List<ActivityManager.RunningAppProcessInfo> list = am.getRunningAppProcesses();
-                    if (list != null) {
-                        for (int i = 0; i < list.size(); ++i) {
-                            if (installApkPackName.matches(list.get(i).processName)) {
-                                isInstallApkDone = true;
-                                break;
+                        new AsyncTask<Void, String, Boolean>() {
+                            @Override
+                            protected Boolean doInBackground(Void... p) {
+                                Log.e(TAG, "验证vpn地址是否可用…");
+                                return AppUtils.Ping2("baidu.com");
                             }
-                        }
-                    }
 
-                    handlerEnter(MSG_REQUEST_CLOSE, null, 10000 + localRandom.nextInt(10000));//10到20秒
+                            @Override
+                            protected void onPostExecute(Boolean result) {
+                                if (result) {
+                                    Log.e(TAG, "vpn可用");
+                                    mHandler2.postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            List<AccessibilityNodeInfo> clearBtn = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.android.zj.vary:id/clear_cache");
+                                            if (AccessibilityUtils.checkNodeInfoType(clearBtn, "android.widget.Button")) {
+                                                AccessibilityUtils.performClick(clearBtn.get(0));
+                                            }
+                                        }
+                                    }, 500);
+
+                                    mHandler2.postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            List<AccessibilityNodeInfo> refreshBtn = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.android.zj.vary:id/testButton");
+                                            if (AccessibilityUtils.checkNodeInfoType(refreshBtn, "android.widget.Button")) {
+                                                AccessibilityUtils.performClick(refreshBtn.get(0));
+                                            }
+                                        }
+                                    }, 1500);
+
+                                    mHandler2.postDelayed(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Log.e(TAG, "openApp2");
+                                            AppUtils.openApp2();
+                                        }
+                                    }, 2500);
+                                } else {
+                                    Log.e(TAG, "延迟太大，重新获取Vpn地址中…");
+                                    clickNodeInfo(accessibilityNodeInfo, "com.android.zj.vary:id/update_proxy", "android.widget.Button");
+                                }
+                            }
+                        }.execute();
+                    }
                 }
             } catch (Exception e) {
                 ;
             }
         }
+
+//        //6.0 权限获取 自动授权
+//        if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.widget.FrameLayout", 16384)
+//                || AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.permission.ui.GrantPermissionsActivity", 32)) {
+//            //授权界面
+//            if (accessibilityNodeInfo.getPackageName().equals("com.android.packageinstaller")
+//                    && accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout")) {
+//                Log.e(TAG, "进入授权界面");
+//                handlerEnter(MSG_REQUEST_AUTHORIZE, null, 500 + localRandom.nextInt(500));//0.5到1秒
+//            }
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "eu.chainfire.supersu.PromptActivity", 32)) {
+//            //root 权限授权
+//            if (AccessibilityUtils.findTextAndClick(SmartRobotService.this, "授权")) {
+//                Log.e(TAG, "root 权限授权成功");
+//            }
+//        }
+
+//        if (isInstallApkDone && TextUtils.isEmpty(installApkPackName) && checkAccessPaceName(accessibilityNodeInfo.getPackageName().toString())) {
+//            installApkPackName = accessibilityNodeInfo.getPackageName().toString();
+//        }
+//        if (accessibilityNodeInfo.getPackageName().equals(installApkPackName)/* || (accessibilityNodeInfo.getChildCount() == 2
+//                && accessibilityNodeInfo.getChild(0).getClassName().equals("android.webkit.WebView")
+//                && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ProgressBar"))*/) {
+//
+//            Log.e(TAG, "enter out view!");
+//            handlerEnter(MSG_REQUEST_CLOSE, null, 10000 + localRandom.nextInt(10000));//10到20秒
+//            return;
+//        }
+//
+//        if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.MainActivity", 32)) {
+//            //进入了游戏主界面  随机获取一种类型
+//
+//            List<AccessibilityNodeInfo> sendBtn = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.c.z.j.guess.cb:id/diyAdButton");
+//            if (AccessibilityUtils.checkNodeInfoType(sendBtn, "android.widget.Button")) {
+//                AccessibilityUtils.performClick(sendBtn.get(0));
+//            }
+//
+//
+//            /*String t = btnIds[localRandom.nextInt(btnIds.length)];
+//            if (t.equals("back")) {
+//                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
+//            } else {
+//                clickNodeInfo(accessibilityNodeInfo, t, "android.widget.Button");
+//            }*/
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.GuessActivity", 32)) {
+//            //进入继续游戏。
+//            Log.e(TAG, "进入继续游戏");
+//            String t = guessBtnIds[localRandom.nextInt(guessBtnIds.length)];
+//            if (!t.equals("back") && accessibilityNodeInfo.getChildCount() >= 4 && accessibilityNodeInfo.getChild(4).getClassName()
+//                    .toString().trim().equals("android.widget.LinearLayout") && accessibilityNodeInfo.getChild(4).getChildCount() == 1) {
+//                clickNodeInfo(accessibilityNodeInfo.getChild(4).getChild(0), null, "click");
+//            } else {
+//                clickNodeInfo(accessibilityNodeInfo, null, "back");
+//            }
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.LevelMainActivity", 32)) {
+//            //进入选择大关卡
+//            Log.e(TAG, "进入选择大关卡");
+//            String t = levelMainBtnIds[localRandom.nextInt(levelMainBtnIds.length)];
+//            if (!t.equals("back") && accessibilityNodeInfo.getChildCount() >= 4 && accessibilityNodeInfo.getChild(4).getClassName()
+//                    .toString().trim().equals("android.widget.LinearLayout") && accessibilityNodeInfo.getChild(4).getChildCount() == 1) {
+//                clickNodeInfo(accessibilityNodeInfo.getChild(4).getChild(0), null, "click");
+//            } else {
+//                clickNodeInfo(accessibilityNodeInfo, null, "back");
+//            }
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.c.z.j.guess.cb.activity.LevelItemActivity", 32)) {
+//            //进入选择小关卡
+//            Log.e(TAG, "进入选择小关卡");
+//            clickNodeInfo(accessibilityNodeInfo, null, "back");
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.app.Dialog", 32)) {
+//
+//            //判断界面显示的是插屏广告。 随机 N秒 点击下载  或者 关闭
+//            if (accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout") && accessibilityNodeInfo.getChildCount() == 2
+//                    && accessibilityNodeInfo.getChild(0).getClassName().equals("android.widget.ImageView")) {
+//                Log.e(TAG, "进入插屏广告页");
+//                handlerEnter(MSG_REQUEST_INTERSTITIAL, accessibilityNodeInfo, 1000 + localRandom.nextInt(9000));//1到10秒
+//            } else if (accessibilityNodeInfo.getClassName().equals("android.widget.FrameLayout") && accessibilityNodeInfo.getChildCount() == 2
+//                    && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ScrollView")) {
+//                //自定义广告(单条)
+//                Log.e(TAG, "进入 自定义广告(单条)");
+//                handlerEnter(MSG_REQUEST_CUSTOM_SINGLE, null, 1000 + localRandom.nextInt(9000));//1到10秒
+//            } else if (accessibilityNodeInfo.getChildCount() == 5 && accessibilityNodeInfo.getChild(0).getClassName().equals("android.widget.TextView")
+//                    && accessibilityNodeInfo.getChild(0).getText().toString().trim().contains("确定要退出吗")) {
+//                Log.e(TAG, "进入退出界面");
+//
+//                int type = localRandom.nextInt(2);
+//                if (type == 0) {
+//                    handlerEnter(MSG_REQUEST_EXIT_APP, null, 1000 + localRandom.nextInt(4000));//1到5秒
+//                } else {
+//                    if (accessibilityNodeInfo.getChild(1).getClassName().toString().trim().equals("android.widget.ImageView")) {
+//                        AccessibilityUtils.performClick(accessibilityNodeInfo.getChild(1));
+////                        clickNodeInfo(accessibilityNodeInfo.getChild(1), null, "click");
+//                    }
+//                }
+//            } else if(accessibilityNodeInfo.getChildCount() == 2 && accessibilityNodeInfo.getChild(0).getClassName().equals("android.webkit.WebView")
+//                    && accessibilityNodeInfo.getChild(1).getClassName().equals("android.widget.ProgressBar")){
+//                //进入内部webview
+//                Log.e(TAG, "dialog 进入内部webview");
+//
+//            } else {
+//                Log.e(TAG, "进入未知类型");
+//                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
+//            }
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.app.AlertDialog", 32)) {
+//            //温馨提示   文件已经存在 是否重新下载
+//            Log.e(TAG, "进入 温馨提示");
+//            handlerEnter(MSG_REQUEST_WARM_HINT, null, 1000 + localRandom.nextInt(9000));//1到10秒
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.PackageInstallerActivity", 32)) {
+//            Log.e(TAG, "进入 应用安装中");
+//            handlerEnter(MSG_REQUEST_AUTO_INSTALL, null, 5000 + localRandom.nextInt(5000));//5到10秒
+//
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.packageinstaller.InstallAppProgress", 32)) {
+//            //应用安装完成界面
+//            Log.e(TAG, "进入 应用安装完成界面");//123
+//            handlerEnter(MSG_REQUEST_INSTALL_DONE, accessibilityNodeInfo, 1000 + localRandom.nextInt(2000));//1到3秒
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.server.am.AppErrorDialog", 32)) {
+//            //已停止运行
+//            Log.e(TAG, "已停止运行");
+//            clickNodeInfo(accessibilityNodeInfo, "android:id/button1", "android.widget.Button");
+//
+//        } else if (AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "com.android.org.chromium.content.browser.ContentViewCore", 2048)) {
+//            //返回
+//            if(accessibilityNodeInfo.getChild(0).getClassName().toString().trim().equals("android.webkit.WebView")){
+//                Log.e(TAG, "ContentViewCore WebView");
+//
+//            } else {
+//                Log.e(TAG, "ContentViewCore 自动返回");
+//                handlerEnter(MSG_REQUEST_GO_BACK, null, 1000);
+//            }
+//
+//        } else if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+//            try {
+//                String toastMsg = (String) accessibilityEvent.getText().get(0);
+//                String containsStr = "<<安装>>package:";
+//                if (!TextUtils.isEmpty(toastMsg) && toastMsg.contains(containsStr)) {
+//                    Log.e(TAG, "应用安装完成了");
+//                    installApkPackName = toastMsg.replace(containsStr, "");
+//
+//                    ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+//                    List<ActivityManager.RunningAppProcessInfo> list = am.getRunningAppProcesses();
+//                    if (list != null) {
+//                        for (int i = 0; i < list.size(); ++i) {
+//                            if (installApkPackName.matches(list.get(i).processName)) {
+//                                isInstallApkDone = true;
+//                                break;
+//                            }
+//                        }
+//                    }
+//
+//                    handlerEnter(MSG_REQUEST_CLOSE, null, 10000 + localRandom.nextInt(10000));//10到20秒
+//                }
+//            } catch (Exception e) {
+//                ;
+//            }
+//        }
     }
 
-    //等待 1到10秒 之后，点击按钮
+    //等待 1到5秒 之后，点击按钮
     private void clickNodeInfo(AccessibilityNodeInfo nodeInfo, String id, String type) {
         Message msg = new Message();
         msg.what = MSG_REQUEST_CLICK_BTN;
@@ -357,7 +418,7 @@ public class SmartRobotService extends AccessibilityService {
         bundle.putString("id", id);
         bundle.putString("type", type);
         msg.setData(bundle);
-        handlerEnter(-1, msg, 1000 + localRandom.nextInt(9000));//1到10秒
+        handlerEnter(-1, msg, 1000 + localRandom.nextInt(4000));//1到5秒
     }
 
     private void handlerEnter(int what, Object obj, long delayMillis) {

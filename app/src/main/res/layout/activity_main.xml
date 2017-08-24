@@ -11,12 +11,6 @@
         android:id="@+id/open_app"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="打开应用" />
-
-    <Button
-        android:id="@+id/open_setting"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="打开设置" />
+        android:text="开始" />
 
 </LinearLayout>
