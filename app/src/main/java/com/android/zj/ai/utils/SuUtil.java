@@ -12,7 +12,8 @@ public class SuUtil {
      */  
     public static void kill(String packageName) {  
         initProcess();  
-        killProcess(packageName);  
+        killProcess(packageName);
+        unInstall(packageName);
         close();  
     }  
   
@@ -26,7 +27,7 @@ public class SuUtil {
             } catch (IOException e) {
                 e.printStackTrace();  
             }  
-    }  
+    }
   
     /** 
      * 结束进程 
@@ -40,8 +41,22 @@ public class SuUtil {
         } catch (IOException e) {  
             e.printStackTrace();  
         }  
-    }  
-  
+    }
+
+    /**
+     * 结束进程
+     */
+    private static void unInstall(String packageName) {
+        OutputStream out = process.getOutputStream();
+        String cmd = "pm uninstall " + packageName + " \n";
+        try {
+            out.write(cmd.getBytes());
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /** 
      * 关闭输出流 
      */  

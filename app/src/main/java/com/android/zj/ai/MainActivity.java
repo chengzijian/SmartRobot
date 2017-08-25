@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.android.zj.ai.utils.AppUtils;
+import com.android.zj.ai.utils.SuUtil;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
@@ -19,6 +20,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        findViewById(R.id.id_test).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SuUtil.kill("com.android.daoway");
+            }
+        });
 
         findViewById(R.id.open_app).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -41,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
     }
 
     @Override
