@@ -86,7 +86,7 @@ public class SmartRobotService extends AccessibilityService {
                                 @Override
                                 public void run() {
                                     Log.e(TAG, "kill app:" + installApkPackName);
-                                    SuUtil.kill(installApkPackName);
+                                    SuUtil.kill(installApkPackName, true);
                                     mHandler.postDelayed(mOpenAdApp, 1500);
                                 }
                             }, 5000 + localRandom.nextInt(5000));
