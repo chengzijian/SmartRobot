@@ -71,7 +71,7 @@ public class SmartRobotService extends AccessibilityService {
         if (accessibilityNodeInfo == null) {
             return;
         }
-        //进入首页
+        //进入首页android.view.View, 2048， com.chengzj.zd
         if(accessibilityEvent.getPackageName().equals("com.android.zj.ai")){
             if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
                 String toastMsg = (String) accessibilityEvent.getText().get(0);
@@ -129,7 +129,14 @@ public class SmartRobotService extends AccessibilityService {
         } else if(accessibilityEvent.getPackageName().equals("com.chengzj.zd")){
             if(AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.view.View", 2048)) {
                 //banner刷新了
+                AccessibilityNodeInfo view = accessibilityNodeInfo.getChild(2);
+                if(view.getClassName().toString().equals("android.webkit.WebView")){
+                    view.getChild(0).getChild(1).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                } else {
 
+                }
+
+                Log.e(TAG, "2233445566");
             } else if(AccessibilityUtils.isCurrPageForStr(accessibilityEvent, "android.app.Notification", 64)) {
                 //下载进度
             }

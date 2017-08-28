@@ -13,6 +13,7 @@ import com.android.zj.ai.db.MySQLiteOpenHelper;
 import com.android.zj.ai.db.PhoneData;
 import com.android.zj.ai.db.PhoneDataDao;
 import com.android.zj.ai.utils.AppUtils;
+import com.android.zj.ai.utils.IpProxyUtil;
 import com.android.zj.ai.utils.SuUtil;
 import com.github.yuweiguocn.library.greendao.MigrationHelper;
 
@@ -40,8 +41,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 //                CacheUtil.delCacheFile();
-                SuUtil.kill("com.chengzj.zd", false);
+//                SuUtil.kill("com.chengzj.zd", false);
 //                initDB();
+                IpProxyUtil.getIpProxy();
             }
         });
 
