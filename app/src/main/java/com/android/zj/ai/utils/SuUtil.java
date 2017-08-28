@@ -1,5 +1,8 @@
 package com.android.zj.ai.utils;
 
+import android.os.Environment;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -17,6 +20,7 @@ public class SuUtil {
             unInstall(packageName);
         } else {
             clearCache(packageName);
+            clearCache();
         }
         close();
     }
@@ -24,13 +28,52 @@ public class SuUtil {
     /**
      * 初始化进程
      */
-    private static void initProcess() {
+    public static void initProcess() {
         if (process == null)
             try {
                 process = Runtime.getRuntime().exec("su");
             } catch (IOException e) {
                 e.printStackTrace();
             }
+    }
+
+    private static void clearCache(){
+//        String dir = getSDPath();
+        String dir = "/storage/emulated/legacy";
+        clearCacheDir(dir +"/Android/data/cache", true);
+        clearCacheDir(dir +"/Android/data/com.chengzj.zd/cache", true);
+        clearCacheDir(dir +"/Android/data/.class", false);
+        clearCacheDir(dir +"/Android/data/.um", false);
+        clearCacheDir(dir +"/Android/data/.nomedia", false);
+        clearCacheDir(dir +"/download", true);
+    }
+
+    /**
+     * 清除缓存
+     */
+    private static void clearCacheDir(String dir, boolean mk) {
+        OutputStream out = process.getOutputStream();
+        String cmd = "rm -r -f "+dir+" \n";
+        try {
+            out.write(cmd.getBytes());
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if(mk){
+            mkdir(dir);
+        }
+    }
+
+    private static void mkdir(String dir){
+        OutputStream out = process.getOutputStream();
+        String cmd = "mkdir -p "+dir+" \n";
+        try {
+            out.write(cmd.getBytes());
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -86,5 +129,15 @@ public class SuUtil {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+    }
+
+    private static String getSDPath() {
+        File sdDir = null;
+        boolean sdCardExist = Environment.getExternalStorageState()
+                .equals(android.os.Environment.MEDIA_MOUNTED); //判断sd卡是否存在
+        if (sdCardExist) {
+            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
+        }
+        return sdDir.toString();
     }
 }  

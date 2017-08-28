@@ -1,21 +1,8 @@
 package com.android.zj.ai;
 
-import android.app.ActivityManager;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.IPackageDataObserver;
-import android.content.pm.IPackageStatsObserver;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageStats;
-import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -26,14 +13,8 @@ import com.android.zj.ai.db.MySQLiteOpenHelper;
 import com.android.zj.ai.db.PhoneData;
 import com.android.zj.ai.db.PhoneDataDao;
 import com.android.zj.ai.utils.AppUtils;
-import com.android.zj.ai.utils.CacheUtil;
 import com.android.zj.ai.utils.SuUtil;
 import com.github.yuweiguocn.library.greendao.MigrationHelper;
-
-import java.lang.reflect.Method;
-import java.util.Date;
-
-import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -59,9 +40,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 //                CacheUtil.delCacheFile();
-
-//                SuUtil.kill("com.chengzj.zd", false);
-                initDB();
+                SuUtil.kill("com.chengzj.zd", false);
+//                initDB();
             }
         });
 
